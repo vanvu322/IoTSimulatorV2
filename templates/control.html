@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     <title>IoT Sensor Data & Control</title>
+     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+     <style>
+          body {
+               margin: 20px;
+          }
+
+          table {
+               margin-top: 20px;
+          }
+     </style>
+</head>
+
+<body>
+
+     <div class="container">
+          <h1>IoT Sensor Data</h1>
+
+          <table class="table table-bordered">
+               <thead>
+                    <tr>
+                         <th>Nhiệt độ</th>
+                         <th>Độ ẩm</th>
+                         <th>Thời tiết: mưa</th>
+                         <th>Cường độ ánh sáng</th>
+                         <th>Thời gian</th>
+                    </tr>
+               </thead>
+               <tbody id="sensor-data-table">
+                    <!-- Rows will be added here by JavaScript -->
+               </tbody>
+          </table>
+
+          <button id="load-more" class="btn btn-primary">Xem thêm</button>
+          <button id="show-less" class="btn btn-secondary" style="display: none;">Thu gọn</button>
+     </div>
+
+     <div class="container">
+          <h1>Điều khiển cảm biến IoT</h1>
+
+          <div class="row">
+               <div class="col-md-4">
+                    <h2>Điều hoà nhiệt độ</h2>
+                    <form id="temperature-control-form">
+                         <div class="form-group">
+                              <label for="min-temp">Nhiệt độ tối thiểu:</label>
+                              <input type="number" id="min-temp" name="min-temp" class="form-control" required>
+                         </div>
+                         <div class="form-group">
+                              <label for="max-temp">Nhiệt độ tối đa:</label>
+                              <input type="number" id="max-temp" name="max-temp" class="form-control" required>
+                         </div>
+                         <button type="submit" class="btn btn-primary">Điều chỉnh</button>
+                    </form>
+               </div>
+
+               <div class="col-md-4">
+                    <h2>Điều khiển đèn</h2>
+                    <form id="light-control-form">
+                         <div class="form-group">
+                              <label for="min-light">Độ sáng tối thiểu:</label>
+                              <input type="number" id="min-light" name="min-light" class="form-control" required>
+                         </div>
+                         <div class="form-group">
+                              <label for="max-light">Độ sáng tối đa:</label>
+                              <input type="number" id="max-light" name="max-light" class="form-control" required>
+                         </div>
+                         <button type="submit" class="btn btn-primary">Điều chỉnh</button>
+                    </form>
+               </div>
+
+               <div class="col-md-4">
+                    <h2>Điều chỉnh độ ẩm</h2>
+                    <form id="humidity-control-form">
+                         <div class="form-group">
+                              <label for="min-humidity">Độ ẩm tối thiểu:</label>
+                              <input type="number" id="min-humidity" name="min-humidity" class="form-control" required>
+                         </div>
+                         <div class="form-group">
+                              <label for="max-humidity">Độ ẩm tối đa:</label>
+                              <input type="number" id="max-humidity" name="max-humidity" class="form-control" required>
+                         </div>
+                         <button type="submit" class="btn btn-primary">Điều chỉnh</button>
+                    </form>
+               </div>
+          </div>
+     </div>
+
+     <script>
+          const initialVisibleRows = 5;  // Số lượng hàng hiển thị ban đầu
+          let visibleRows = initialVisibleRows;  // Số lượng hàng hiện tại đang hiển thị
+          let allData = [];  // Lưu trữ tất cả dữ liệu lấy từ máy chủ
+
+          // Hàm lấy dữ liệu cảm biến từ máy chủ
+          function fetchSensorData() {
+               $.get("/data", function (data) {
+                    allData = data;  // Lưu trữ dữ liệu từ máy chủ
+                    renderTable();
+               });
+          }
+
+          // Hàm hiển thị bảng dữ liệu cảm biến
+          function renderTable() {
+               const tableBody = $("#sensor-data-table");
+               tableBody.empty();  // Xóa nội dung bảng
+               let rowData = {
+                    temperature: '',
+                    humidity: '',
+                    rain: '',
+                    light: '',
+                    timestamp: ''
+               };
+               let rowCount = 0;
+               let lastRowData = {
+                    temperature: '',
+                    humidity: '',
+                    rain: '',
+                    light: '',
+                    timestamp: ''
+               };
+
+               for (let i = 0; i < allData.length && rowCount < visibleRows; i++) {
+                    const row = allData[i];
+                    if (row[1] === 'temperature') {
+                         rowData.temperature = row[2];
+                         rowData.timestamp = row[3];
+                    } else if (row[1] === 'humidity') {
+                         rowData.humidity = row[2];
+                         rowData.timestamp = row[3];
+                    } else if (row[1] === 'rain') {
+                         rowData.rain = row[2];
+                         rowData.timestamp = row[3];
+                    } else if (row[1] === 'light') {
+                         rowData.light = row[2];
+                         rowData.timestamp = row[3];
+                    }
+
+                    // Khi có đủ dữ liệu cho một timestamp, thêm nó vào bảng nếu khác hàng trước đó
+                    if (rowData.temperature && rowData.humidity && rowData.rain && rowData.light) {
+                         if (JSON.stringify(rowData) !== JSON.stringify(lastRowData)) {
+                              const newRow = "<tr>" +
+                                   "<td>" + rowData.temperature + "</td>" +
+                                   "<td>" + rowData.humidity + "</td>" +
+                                   "<td>" + rowData.rain + "</td>" +
+                                   "<td>" + rowData.light + "</td>" +
+                                   "<td>" + rowData.timestamp + "</td>" +
+                                   "</tr>";
+                              tableBody.prepend(newRow);
+                              rowCount++;
+                              lastRowData = { ...rowData };
+                         }
+                         rowData = {
+                              temperature: '',
+                              humidity: '',
+                              rain: '',
+                              light: '',
+                              timestamp: ''
+                         };
+                    }
+               }
+
+               // Ẩn nút "Xem thêm" nếu tất cả các hàng đã được hiển thị
+               if (visibleRows >= allData.length) {
+                    $("#load-more").hide();
+               } else {
+                    $("#load-more").show();
+               }
+
+               // Hiển thị nút "Thu gọn" nếu nhiều hơn số hàng ban đầu được hiển thị
+               if (visibleRows > initialVisibleRows) {
+                    $("#show-less").show();
+               } else {
+                    $("#show-less").hide();
+               }
+          }
+
+          // Document ready function
+          $(document).ready(function () {
+               fetchSensorData();  // Lấy dữ liệu cảm biến khi document ready
+               setInterval(fetchSensorData, 1000);  // Lấy dữ liệu mới mỗi 5 giây
+
+               // Xử lý sự kiện cho nút "Xem thêm"
+               $("#load-more").click(function () {
+                    visibleRows += 5;  // Hiển thị thêm 5 hàng
+                    renderTable();
+               });
+
+               // Xử lý sự kiện cho nút "Thu gọn"
+               $("#show-less").click(function () {
+                    visibleRows = initialVisibleRows;  // Reset lại số hàng hiển thị ban đầu
+                    renderTable();
+               });
+
+               // Xử lý sự kiện khi gửi form điều chỉnh nhiệt độ
+               $("#temperature-control-form").submit(function (event) {
+                    event.preventDefault();
+
+                    const minTemp = parseFloat($("#min-temp").val());
+                    const maxTemp = parseFloat($("#max-temp").val());
+
+                    if (isNaN(minTemp) || isNaN(maxTemp) || maxTemp < minTemp) {
+                         alert("Vui lòng nhập lại nhiệt độ tối thiểu và tối đa hợp lệ.");
+                         return;
+                    }
+
+                    sendControlRequest("/control/temperature", {
+                         minTemp,
+                         maxTemp
+                    });
+               });
+
+               // Xử lý sự kiện khi gửi form điều chỉnh đèn
+               $("#light-control-form").submit(function (event) {
+                    event.preventDefault();
+
+                    const minLight = parseFloat($("#min-light").val());
+                    const maxLight = parseFloat($("#max-light").val());
+
+                    if (isNaN(minLight) || isNaN(maxLight) || maxLight < minLight) {
+                         alert("Vui lòng nhập lại độ sáng tối thiểu và tối đa hợp lệ.");
+                         return;
+                    }
+
+                    sendControlRequest("/control/light", {
+                         minLight,
+                         maxLight
+                    });
+               });
+
+               // Xử lý sự kiện khi gửi form điều chỉnh độ ẩm
+               $("#humidity-control-form").submit(function (event) {
+                    event.preventDefault();
+
+                    const minHumidity = parseFloat($("#min-humidity").val());
+                    const maxHumidity = parseFloat($("#max-humidity").val());
+
+                    if (isNaN(minHumidity) || isNaN(maxHumidity) || maxHumidity < minHumidity) {
+                         alert("Vui lòng nhập lại độ ẩm tối thiểu và tối đa hợp lệ.");
+                         return;
+                    }
+
+                    sendControlRequest("/control/humidity", {
+                         minHumidity,
+                         maxHumidity
+                    });
+               });
+
+               // Hàm gửi yêu cầu điều khiển tới máy chủ
+               function sendControlRequest(url, data) {
+                    fetch(url, {
+                         method: 'POST',
+                         headers: {
+                              'Content-Type': 'application/json'
+                         },
+                         body: JSON.stringify(data)
+                    })
+                         .then(response => response.json())
+                         .then(data => {
+                              console.log('Success:', data);
+                         })
+                         .catch(error => {
+                              console.error('Error:', error);
+                         });
+               }
+          });
+     </script>
+
+</body>
+
+</html>
