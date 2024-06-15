@@ -19,6 +19,5 @@ Tải và cài đặt MQTT Broker Mosquitto theo link sau:
 https://ngocautomation.com/tai-va-cai-dat-mqtt-broker-mosquitto/
 
 chạy 2 file server.py và sensor.py
-Install my-project with npm
 
     
