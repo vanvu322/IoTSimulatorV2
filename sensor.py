@@ -7,18 +7,20 @@ import sys
 
 BROKER = 'localhost'
 PORT = 1883
-TOPIC_TEMPERATURE = 'sensor/temperature'
-TOPIC_HUMIDITY = 'sensor/humidity'
-TOPIC_LIGHT = 'sensor/light'
-TOPIC_RAIN = 'sensor/rain'
+TOPICS = {
+    'temperature': 'sensor/temperature',
+    'humidity': 'sensor/humidity',
+    'light': 'sensor/light',
+    'rain': 'sensor/rain'
+}
 ACTUATOR_TOPIC = 'actuator/control'
 
-# Khởi tạo các giá trị môi trường ban đầu
+# Giá trị môi trường ban đầu
 environment = {
     "temperature": 25.0,
     "humidity": 50.0,
     "light": 600,
-    "rain": False,
+    "rain": 0,
     "min_temp": 15.0,
     "max_temp": 35.0,
     "min_humidity": 30.0,
@@ -27,20 +29,18 @@ environment = {
     "max_light": 1000
 }
 
-# Biến để kiểm soát vòng lặp
+# Biến điều khiển vòng lặp chính
 running = True
 
 def publish(client, topic, message):
     client.publish(topic, message)
-    print(f"Published {message} to topic {topic}")
+    print(f"Đã gửi {message} đến topic {topic}")
 
-def simulate_environment():
+def simulate_environment(client):
     global environment, running
     while running:
-        # Lấy giờ hiện tại
         current_hour = time.localtime().tm_hour
 
-        # Giả lập sự thay đổi của nhiệt độ và độ ẩm dựa trên yêu cầu từ điều khiển
         if environment["rain"]:
             environment["temperature"] -= random.uniform(0.1, 0.5)
             environment["humidity"] += random.uniform(1, 3)
@@ -48,86 +48,59 @@ def simulate_environment():
             environment["temperature"] += random.uniform(0.1, 0.5)
             environment["humidity"] -= random.uniform(0.5, 1.5)
 
-        # Giới hạn giá trị nhiệt độ và độ ẩm theo yêu cầu từ điều khiển
         environment["temperature"] = max(environment["min_temp"], min(environment["max_temp"], environment["temperature"]))
         environment["humidity"] = max(environment["min_humidity"], min(environment["max_humidity"], environment["humidity"]))
 
-        # Giả lập cường độ ánh sáng dựa trên giờ trong ngày
         if 6 <= current_hour <= 18:
-            environment["light"] = random.uniform(environment["min_light"], environment["max_light"])  # Ban ngày
+            environment["light"] = random.uniform(environment["min_light"], environment["max_light"])
         else:
-            environment["light"] = random.uniform(environment["min_light"], environment["max_light"])  # Ban đêm
+            environment["light"] = random.uniform(environment["min_light"], environment["max_light"])
 
-        # Giả lập tình trạng mưa
-        environment["rain"] = random.choice([True, False])
+        environment["rain"] = random.choice([1, 0])
 
-        # Cập nhật MQTT
-        client.publish(TOPIC_TEMPERATURE, environment["temperature"])
-        client.publish(TOPIC_HUMIDITY, environment["humidity"])
-        client.publish(TOPIC_LIGHT, environment["light"])
-        client.publish(TOPIC_RAIN, str(environment["rain"]))
+        for key, topic in TOPICS.items():
+            if key == 'rain':
+                publish(client, topic, str(environment[key]))
+            else:
+                publish(client, topic, environment[key])
 
-        time.sleep(10)  # Cập nhật môi trường mỗi 10 giây
-
-def temperature_sensor(client):
-    global running
-    while running:
-        publish(client, TOPIC_TEMPERATURE, environment["temperature"])
-        time.sleep(10)
-
-def humidity_sensor(client):
-    global running
-    while running:
-        publish(client, TOPIC_HUMIDITY, environment["humidity"])
-        time.sleep(10)
-
-def light_sensor(client):
-    global running
-    while running:
-        publish(client, TOPIC_LIGHT, environment["light"])
-        time.sleep(10)
-
-def rain_sensor(client):
-    global running
-    while running:
-        publish(client, TOPIC_RAIN, environment["rain"])
         time.sleep(10)
 
 def signal_handler(sig, frame):
     global running
-    print('Stopping...')
+    print('Đang dừng...')
     running = False
 
 def on_connect(client, userdata, flags, rc):
-    print(f"Connected with result code {rc}")
+    print(f"Đã kết nối với mã kết quả {rc}")
     client.subscribe(ACTUATOR_TOPIC)
 
 def on_message(client, userdata, msg):
     global environment
     try:
         payload = msg.payload.decode()
-        print(f"Received message '{payload}' on topic '{msg.topic}'")
+        print(f"Nhận tin nhắn '{payload}' trên topic '{msg.topic}'")
         if msg.topic == ACTUATOR_TOPIC:
             command, value = payload.split(":")
             if command == "SET_TEMP":
                 min_temp, max_temp = map(float, value.split("-"))
                 environment["min_temp"] = min_temp
                 environment["max_temp"] = max_temp
-                print(f"Set temperature range to {min_temp}-{max_temp}")
+                print(f"Đã đặt khoảng nhiệt độ từ {min_temp}-{max_temp}")
             elif command == "SET_HUMIDITY":
                 min_humidity, max_humidity = map(float, value.split("-"))
                 environment["min_humidity"] = min_humidity
                 environment["max_humidity"] = max_humidity
-                print(f"Set humidity range to {min_humidity}-{max_humidity}")
+                print(f"Đã đặt khoảng độ ẩm từ {min_humidity}-{max_humidity}")
             elif command == "SET_LIGHT":
                 min_light, max_light = map(float, value.split("-"))
                 environment["min_light"] = min_light
                 environment["max_light"] = max_light
-                print(f"Set light range to {min_light}-{max_light}")
+                print(f"Đã đặt khoảng ánh sáng từ {min_light}-{max_light}")
             else:
-                print(f"Unknown command {command}")
+                print(f"Lệnh không xác định {command}")
     except ValueError as e:
-        print(f"Error decoding message: {e}")
+        print(f"Lỗi khi giải mã tin nhắn: {e}")
 
 client = mqtt.Client()
 client.on_connect = on_connect
@@ -136,27 +109,17 @@ client.connect(BROKER, PORT, 60)
 
 client.loop_start()
 
-# Đăng ký xử lý tín hiệu Ctrl+C
 signal.signal(signal.SIGINT, signal_handler)
 
-# Khởi tạo thread để giả lập môi trường
-environment_thread = threading.Thread(target=simulate_environment)
+environment_thread = threading.Thread(target=simulate_environment, args=(client,))
 environment_thread.start()
 
-# Khởi tạo các thread cảm biến
-threads = [
-    threading.Thread(target=temperature_sensor, args=(client,)),
-    threading.Thread(target=humidity_sensor, args=(client,)),
-    threading.Thread(target=light_sensor, args=(client,)),
-    threading.Thread(target=rain_sensor, args=(client,))
-]
-
-for thread in threads:
-    thread.start()
-
-# Chờ các thread dừng lại
-for thread in threads:
-    thread.join()
+try:
+    while running:
+        time.sleep(1)
+except KeyboardInterrupt:
+    print("Bị ngắt, đang dừng...")
+    running = False
 
 environment_thread.join()
-print('Stopped.')
+print('Đã dừng.')
