@@ -11,7 +11,7 @@
 
 thư viện python cần cài đặt:
 ```bash
-    pip install paho.mqtt.client flask
+    pip install paho.mqtt flask
 ```
 
 
