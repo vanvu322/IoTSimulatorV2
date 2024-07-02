@@ -4,6 +4,10 @@ import sqlite3
 import os
 import threading
 import datetime
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 BROKER = "localhost"
 PORT = 1883
@@ -130,29 +134,50 @@ def get_all_sensor_data():
     data = c.fetchall()
     return jsonify(data)
 
-@app.route("/control/temperature", methods=["POST"])
-def control_temperature():
-    data = request.json
-    min_temp = data.get("minTemp")
-    max_temp = data.get("maxTemp")
-    client.publish(ACTUATOR_TOPIC, f"SET_TEMP:{min_temp}-{max_temp}")
-    return jsonify({"status": "success", "minTemp": min_temp, "maxTemp": max_temp})
+def ensure_mqtt_connection():
+    if not client.is_connected():
+        try:
+            client.reconnect()
+            logger.info("Reconnected to MQTT broker")
+        except Exception as e:
+            logger.error(f"Failed to reconnect to MQTT broker: {str(e)}")
 
-@app.route("/control/light", methods=["POST"])
-def control_light():
-    data = request.json
-    min_light = data.get("minLight")
-    max_light = data.get("maxLight")
-    client.publish(ACTUATOR_TOPIC, f"SET_LIGHT:{min_light}-{max_light}")
-    return jsonify({"status": "success", "minLight": min_light, "maxLight": max_light})
+try:
+    client.connect(BROKER, PORT, 60)
+    client.loop_start()
+except Exception as e:
+    logger.error(f"Failed to connect to MQTT broker: {str(e)}")
 
-@app.route("/control/humidity", methods=["POST"])
-def control_humidity():
-    data = request.json
-    min_humidity = data.get("minHumidity")
-    max_humidity = data.get("maxHumidity")
-    client.publish(ACTUATOR_TOPIC, f"SET_HUMIDITY:{min_humidity}-{max_humidity}")
-    return jsonify({"status": "success", "minHumidity": min_humidity, "maxHumidity": max_humidity})
+@app.route("/control/<control_type>", methods=["POST"])
+def control_actuator(control_type):
+    ensure_mqtt_connection()
+    
+    if control_type == "temperature":
+        min_val = request.form.get('minTemp')
+        max_val = request.form.get('maxTemp')
+        command = f"SET_TEMP:{min_val}-{max_val}"
+    elif control_type == "light":
+        min_val = request.form.get('minLight')
+        max_val = request.form.get('maxLight')
+        command = f"SET_LIGHT:{min_val}-{max_val}"
+    elif control_type == "humidity":
+        min_val = request.form.get('minHumidity')
+        max_val = request.form.get('maxHumidity')
+        command = f"SET_HUMIDITY:{min_val}-{max_val}"
+    else:
+        return jsonify({"success": False, "error": "Invalid control type"})
+
+    try:
+        result = client.publish(ACTUATOR_TOPIC, command)
+        if result.rc == mqtt.MQTT_ERR_SUCCESS:
+            logger.info(f"Successfully sent {control_type} control message: {command}")
+            return jsonify({"success": True})
+        else:
+            logger.error(f"Failed to send {control_type} control message. Error code: {result.rc}")
+            return jsonify({"success": False, "error": f"MQTT publish error: {result.rc}"})
+    except Exception as e:
+        logger.exception(f"An error occurred while sending {control_type} control message")
+        return jsonify({"success": False, "error": str(e)})
 
 if __name__ == "__main__":
     app.run(debug=True)
