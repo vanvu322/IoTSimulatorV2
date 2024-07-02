@@ -12,97 +12,143 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1/dist/chartjs-plugin-zoom.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" rel="stylesheet">
     <style>
-        .charts-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-around;
+        body {
+            background-color: #f8f9fa;
         }
-        .chart-wrapper {
-            width: 45%;
+
+        .chart-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
             margin-bottom: 20px;
         }
-        .controls {
-            text-align: center;
-            margin-top: 20px;
+
+        .control-panel {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
         }
-        button {
-            margin: 0 10px;
+
+        .btn-custom {
+            margin: 5px;
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        #alert-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <h1 class="mt-4 mb-4">IoT Sensor Dashboard</h1>
+    <div class="container-fluid">
+        <h1 class="text-center my-4">IoT Sensor Dashboard</h1>
 
-        <div class="charts-container">
-            <div class="chart-wrapper">
-                <canvas id="temperatureChart"></canvas>
-            </div>
-            <div class="chart-wrapper">
-                <canvas id="humidityChart"></canvas>
-            </div>
-            <div class="chart-wrapper">
-                <canvas id="lightChart"></canvas>
-            </div>
-            <div class="chart-wrapper">
-                <canvas id="rainChart"></canvas>
-            </div>
-        </div>
-
-        <div class="controls mb-4">
-            <button onclick="zoomIn()" class="btn btn-secondary">Zoom In</button>
-            <button onclick="zoomOut()" class="btn btn-secondary">Zoom Out</button>
-            <button onclick="resetZoom()" class="btn btn-secondary">Reset Zoom</button>
-        </div>
-
-        <h2 class="mb-4">Điều khiển cảm biến IoT</h2>
+        <div id="alert-container"></div>
 
         <div class="row">
-            <div class="col-md-4">
-                <h3>Điều hoà nhiệt độ</h3>
-                <form id="temperature-control-form">
-                    <div class="form-group">
-                        <label for="min-temp">Nhiệt độ tối thiểu:</label>
-                        <input type="number" id="min-temp" name="minTemp" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="max-temp">Nhiệt độ tối đa:</label>
-                        <input type="number" id="max-temp" name="maxTemp" class="form-control" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Điều chỉnh</button>
-                </form>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="chart-container">
+                    <div class="chart-title">Nhiệt độ (°C)</div>
+                    <canvas id="temperatureChart"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="chart-container">
+                    <div class="chart-title">Độ ẩm (%)</div>
+                    <canvas id="humidityChart"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="chart-container">
+                    <div class="chart-title">Độ sáng (lux)</div>
+                    <canvas id="lightChart"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="chart-container">
+                    <div class="chart-title">Mưa</div>
+                    <canvas id="rainChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="row justify-content-center mb-4">
+            <div class="col-md-4 text-center">
+                <button onclick="zoomIn()" class="btn btn-secondary btn-custom"><i class="fas fa-search-plus"></i> Zoom
+                    In</button>
+                <button onclick="zoomOut()" class="btn btn-secondary btn-custom"><i class="fas fa-search-minus"></i>
+                    Zoom Out</button>
+                <button onclick="resetZoom()" class="btn btn-secondary btn-custom"><i class="fas fa-undo"></i> Reset
+                    Zoom</button>
+            </div>
+        </div>
+
+        <h2 class="text-center mb-4">IoT Sensor Control</h2>
+
+        <div class="row">
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="control-panel">
+                    <h3 class="text-center mb-3">Điều Khiển Nhiệt Độ</h3>
+                    <form id="temperature-control-form">
+                        <div class="form-group">
+                            <label for="min-temp">Nhiệt độ tối thiểu:</label>
+                            <input type="number" id="min-temp" name="minTemp" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="max-temp">Nhiệt độ tối đa:</label>
+                            <input type="number" id="max-temp" name="maxTemp" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Điều chỉnh</button>
+                    </form>
+                </div>
             </div>
 
-            <div class="col-md-4">
-                <h3>Điều khiển đèn</h3>
-                <form id="light-control-form">
-                    <div class="form-group">
-                        <label for="min-light">Độ sáng tối thiểu:</label>
-                        <input type="number" id="min-light" name="minLight" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="max-light">Độ sáng tối đa:</label>
-                        <input type="number" id="max-light" name="maxLight" class="form-control" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Điều chỉnh</button>
-                </form>
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="control-panel">
+                    <h3 class="text-center mb-3">Điều chỉnh độ sáng</h3>
+                    <form id="light-control-form">
+                        <div class="form-group">
+                            <label for="min-light">Độ sáng tối thiểu:</label>
+                            <input type="number" id="min-light" name="minLight" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="max-light">Độ sáng tối đa:</label>
+                            <input type="number" id="max-light" name="maxLight" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Điều chỉnh</button>
+                    </form>
+                </div>
             </div>
 
-            <div class="col-md-4">
-                <h3>Điều chỉnh độ ẩm</h3>
-                <form id="humidity-control-form">
-                    <div class="form-group">
-                        <label for="min-humidity">Độ ẩm tối thiểu:</label>
-                        <input type="number" id="min-humidity" name="minHumidity" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="max-humidity">Độ ẩm tối đa:</label>
-                        <input type="number" id="max-humidity" name="maxHumidity" class="form-control" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Điều chỉnh</button>
-                </form>
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="control-panel">
+                    <h3 class="text-center mb-3">Điều Khiển Độ Ẩm</h3>
+                    <form id="humidity-control-form">
+                        <div class="form-group">
+                            <label for="min-humidity">Độ ẩm tối thiểu:</label>
+                            <input type="number" id="min-humidity" name="minHumidity" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="max-humidity">Độ ẩm tối đa:</label>
+                            <input type="number" id="max-humidity" name="maxHumidity" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Điều chỉnh</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -111,10 +157,10 @@
         let charts = {};
         const MAX_DATA_POINTS = 100;
         const chartConfigs = [
-            { id: 'temperatureChart', label: 'Temperature (°C)', color: 'red', dataIndex: 2 },
-            { id: 'humidityChart', label: 'Humidity (%)', color: 'blue', dataIndex: 3 },
-            { id: 'lightChart', label: 'Light (lux)', color: 'yellow', dataIndex: 4 },
-            { id: 'rainChart', label: 'Rain', color: 'green', dataIndex: 5 }
+            { id: 'temperatureChart', label: 'Nhiệt độ (°C)', color: 'red', dataIndex: 2 },
+            { id: 'humidityChart', label: 'Độ ẩm (%)', color: 'blue', dataIndex: 3 },
+            { id: 'lightChart', label: 'Độ sáng (lux)', color: 'yellow', dataIndex: 4 },
+            { id: 'rainChart', label: 'Mưa', color: 'green', dataIndex: 5 }
         ];
 
         function initCharts() {
@@ -201,15 +247,31 @@
         // Initial data load
         updateSensorData();
 
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alert-container');
+            const alertElement = document.createElement('div');
+            alertElement.className = `alert alert-${type}`;
+            alertElement.textContent = message;
+            alertContainer.appendChild(alertElement);
+
+            // Tự động ẩn thông báo sau 5 giây
+            setTimeout(() => {
+                alertContainer.removeChild(alertElement);
+            }, 5000);
+        }
         // Form submission handlers
         $('#temperature-control-form').submit(function (event) {
             event.preventDefault();
             const minTemp = $('#min-temp').val();
             const maxTemp = $('#max-temp').val();
             $.post('/control/temperature', { minTemp: minTemp, maxTemp: maxTemp }, function (response) {
-                console.log('Đã cập nhật điều khiển nhiệt độ');
-            }).fail(function () {
-                console.error('Lỗi khi cập nhật điều khiển nhiệt độ');
+                if (response.success) {
+                    showAlert('Đã cập nhật điều khiển nhiệt độ thành công', 'success');
+                } else {
+                    showAlert(`Lỗi khi cập nhật điều khiển nhiệt độ: ${response.error}`, 'danger');
+                }
+            }).fail(function (xhr, status, error) {
+                showAlert(`Lỗi khi gửi yêu cầu: ${error}`, 'danger');
             });
         });
 
@@ -218,9 +280,13 @@
             const minLight = $('#min-light').val();
             const maxLight = $('#max-light').val();
             $.post('/control/light', { minLight: minLight, maxLight: maxLight }, function (response) {
-                console.log('Đã cập nhật điều khiển đèn');
-            }).fail(function () {
-                console.error('Lỗi khi cập nhật điều khiển đèn');
+                if (response.success) {
+                    showAlert('Đã cập nhật điều khiển đèn thành công', 'success');
+                } else {
+                    showAlert(`Lỗi khi cập nhật điều khiển đèn: ${response.error}`, 'danger');
+                }
+            }).fail(function (xhr, status, error) {
+                showAlert(`Lỗi khi gửi yêu cầu: ${error}`, 'danger');
             });
         });
 
@@ -229,11 +295,16 @@
             const minHumidity = $('#min-humidity').val();
             const maxHumidity = $('#max-humidity').val();
             $.post('/control/humidity', { minHumidity: minHumidity, maxHumidity: maxHumidity }, function (response) {
-                console.log('Đã cập nhật điều khiển độ ẩm');
-            }).fail(function () {
-                console.error('Lỗi khi cập nhật điều khiển độ ẩm');
+                if (response.success) {
+                    showAlert('Đã cập nhật điều khiển độ ẩm thành công', 'success');
+                } else {
+                    showAlert(`Lỗi khi cập nhật điều khiển độ ẩm: ${response.error}`, 'danger');
+                }
+            }).fail(function (xhr, status, error) {
+                showAlert(`Lỗi khi gửi yêu cầu: ${error}`, 'danger');
             });
         });
+
     </script>
 </body>
 
